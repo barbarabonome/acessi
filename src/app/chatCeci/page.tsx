@@ -9,36 +9,65 @@ type Mensagem = {
   texto: string;
 };
 
+// Tipos para SpeechRecognition
+type SpeechRecognitionEvent = Event & {
+  results: SpeechRecognitionResultList;
+};
+
+type SpeechRecognitionResultList = {
+  [index: number]: SpeechRecognitionResult;
+  length: number;
+};
+
+type SpeechRecognitionResult = {
+  [index: number]: SpeechRecognitionAlternative;
+  length: number;
+  isFinal: boolean;
+};
+
+type SpeechRecognitionAlternative = {
+  transcript: string;
+  confidence: number;
+};
+
+// Declarações globais para SpeechRecognition no window
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export default function ChatCeci() {
   const [mensagem, setMensagem] = useState("");
   const [conversa, setConversa] = useState<Mensagem[]>([]);
   const [respostaTemp, setRespostaTemp] = useState("");
   const [digitando, setDigitando] = useState(false);
-  const [falaAtiva, setFalaAtiva] = useState(false); // inicia desativado
+  const [falaAtiva, setFalaAtiva] = useState(false);
   const [reconhecimentoAtivo, setReconhecimentoAtivo] = useState(false);
 
   const socket = useRef<WebSocket | null>(null);
   const fimDaConversaRef = useRef<HTMLDivElement>(null);
   const errorReported = useRef(false);
   const respostaRef = useRef("");
-  const falaAtivaRef = useRef(false); // ref para acompanhar atualizações
+  const falaAtivaRef = useRef(false);
 
-  // Atualiza o ref sempre que falaAtiva mudar
   useEffect(() => {
     falaAtivaRef.current = falaAtiva;
   }, [falaAtiva]);
 
-  // WebSocket - Recebe mensagens da Ceci
   useEffect(() => {
     socket.current = new WebSocket("wss://cecieco-production.up.railway.app/ws/ceci");
-    socket.current.onopen = () => { errorReported.current = false; };
+    socket.current.onopen = () => {
+      errorReported.current = false;
+    };
 
     socket.current.onmessage = (event) => {
       if (event.data === "[DONE]") {
         const finalResposta = respostaRef.current;
         if (finalResposta) {
-          setConversa(prev => [...prev, { autor: "ceci", texto: finalResposta }]);
-          if (falaAtivaRef.current) falar(finalResposta); // usa o ref atualizado
+          setConversa((prev) => [...prev, { autor: "ceci", texto: finalResposta }]);
+          if (falaAtivaRef.current) falar(finalResposta);
           respostaRef.current = "";
           setRespostaTemp("");
         }
@@ -53,14 +82,12 @@ export default function ChatCeci() {
     return () => socket.current?.close();
   }, []);
 
-  // Scroll automático até a última mensagem
   useEffect(() => {
     if (conversa.length > 0 || respostaTemp) {
       fimDaConversaRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [conversa, respostaTemp, digitando]);
 
-  // Inicia reconhecimento de voz automaticamente ao ativar
   useEffect(() => {
     if (reconhecimentoAtivo) {
       ouvir();
@@ -75,7 +102,7 @@ export default function ChatCeci() {
 
   const enviarMensagem = () => {
     if (!mensagem.trim() || socket.current?.readyState !== WebSocket.OPEN) return;
-    setConversa(prev => [...prev, { autor: "usuário", texto: mensagem }]);
+    setConversa((prev) => [...prev, { autor: "usuário", texto: mensagem }]);
     setMensagem("");
     respostaRef.current = "";
     setRespostaTemp("");
@@ -83,11 +110,13 @@ export default function ChatCeci() {
   };
 
   const ouvir = () => {
-    const Recognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) return alert("SpeechRecognition não suportado.");
     const recognition = new Recognition();
     recognition.lang = "pt-BR";
-    recognition.onresult = event => setMensagem(event.results[0][0].transcript);
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      setMensagem(event.results[0][0].transcript);
+    };
     recognition.onerror = console.error;
     recognition.start();
   };
@@ -101,7 +130,10 @@ export default function ChatCeci() {
         </p>
       </div>
 
-      <div className="h-[330px] bg-white dark:bg-slate-800 dark:text-white rounded-lg shadow-md mt-4 p-4 overflow-y-auto space-y-2" aria-live="polite">
+      <div
+        className="h-[330px] bg-white dark:bg-slate-800 dark:text-white rounded-lg shadow-md mt-4 p-4 overflow-y-auto space-y-2"
+        aria-live="polite"
+      >
         {conversa.map((msg, i) => (
           <div key={i} className={`flex ${msg.autor === "usuário" ? "justify-end" : "justify-start"} items-start`}>
             {msg.autor === "ceci" && (
@@ -158,7 +190,6 @@ export default function ChatCeci() {
           Enviar
         </button>
 
-        {/* Botão de fala (fone de ouvido) */}
         <button
           onClick={() => setFalaAtiva((prev) => !prev)}
           className={`p-2 rounded-full transition ${falaAtiva ? "bg-green-300" : "bg-gray-300"}`}
@@ -167,7 +198,6 @@ export default function ChatCeci() {
           <Headphones className="w-6 h-6 text-gray-700" />
         </button>
 
-        {/* Botão de reconhecimento de voz */}
         <button
           onClick={() => setReconhecimentoAtivo((prev) => !prev)}
           className={`p-2 rounded-full transition ${reconhecimentoAtivo ? "bg-blue-300" : "bg-gray-300"}`}
