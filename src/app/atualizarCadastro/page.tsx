@@ -42,7 +42,7 @@ export default function AtualizarCadastro() {
     } else {
       setErro("Token inválido.");
     }
-  }, []);
+  }, [router]);
 
   const carregarDadosUsuario = async (id: number) => {
     const token = localStorage.getItem("token");

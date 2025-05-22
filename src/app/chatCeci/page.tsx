@@ -9,35 +9,6 @@ type Mensagem = {
   texto: string;
 };
 
-// Tipos para SpeechRecognition
-type SpeechRecognitionEvent = Event & {
-  results: SpeechRecognitionResultList;
-};
-
-type SpeechRecognitionResultList = {
-  [index: number]: SpeechRecognitionResult;
-  length: number;
-};
-
-type SpeechRecognitionResult = {
-  [index: number]: SpeechRecognitionAlternative;
-  length: number;
-  isFinal: boolean;
-};
-
-type SpeechRecognitionAlternative = {
-  transcript: string;
-  confidence: number;
-};
-
-// Declarações globais para SpeechRecognition no window
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
 export default function ChatCeci() {
   const [mensagem, setMensagem] = useState("");
   const [conversa, setConversa] = useState<Mensagem[]>([]);
@@ -57,6 +28,7 @@ export default function ChatCeci() {
   }, [falaAtiva]);
 
   useEffect(() => {
+    //socket.current = new WebSocket("ws://localhost:5000/ws/ceci");
     socket.current = new WebSocket("wss://cecieco-production.up.railway.app/ws/ceci");
     socket.current.onopen = () => {
       errorReported.current = false;
@@ -88,12 +60,6 @@ export default function ChatCeci() {
     }
   }, [conversa, respostaTemp, digitando]);
 
-  useEffect(() => {
-    if (reconhecimentoAtivo) {
-      ouvir();
-    }
-  }, [reconhecimentoAtivo]);
-
   const falar = (texto: string) => {
     const utterance = new SpeechSynthesisUtterance(texto);
     utterance.lang = "pt-BR";
@@ -108,19 +74,6 @@ export default function ChatCeci() {
     setRespostaTemp("");
     socket.current!.send(mensagem);
   };
-
-  const ouvir = () => {
-    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Recognition) return alert("SpeechRecognition não suportado.");
-    const recognition = new Recognition();
-    recognition.lang = "pt-BR";
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      setMensagem(event.results[0][0].transcript);
-    };
-    recognition.onerror = console.error;
-    recognition.start();
-  };
-
   return (
     <main className="w-[85%] mx-auto my-4">
       <div className="flex items-center p-1 bg-gray-100 dark:bg-slate-800 dark:text-white rounded-lg shadow space-x-4">

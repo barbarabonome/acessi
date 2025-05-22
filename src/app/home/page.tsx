@@ -99,7 +99,7 @@ export default function Home() {
 
     setDataAtual(dataFormatada);
     document.title = "Home";
-  }, []);
+  }, [router]);
 
   return (
     <main>

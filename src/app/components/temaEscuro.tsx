@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 
 // Componente principal onde o tema é gerenciado
 const TemaEscuro = () => {
-  const [dropdownTimer, setDropdownTimer] = useState<NodeJS.Timeout | null>(null);
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
